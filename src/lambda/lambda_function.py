@@ -13,6 +13,9 @@ def lambda_handler(event, context):
         response = makeAPaymentIntent(event, slots)
     elif intentName == 'PayoffMortgage':
         response = payoffMortgageIntent(event, slots)
+    elif intentName == 'NextPaymentDetail':
+        print('Intent NextPaymentDetail')
+        response = nextPaymentDetailsIntent(event, slots)
     else: 
         raise Exception('The intent : ' + intentName + ' is not supported')
     return response
@@ -33,7 +36,7 @@ def makeAPaymentIntent(event, slots):
 
     if event['invocationSource'] == 'FulfillmentCodeHook':
         msgTxt = 'Processed your payment, successfully.'
-        return prepareResponseClose(event, msgText, "Fulfilled")
+        return prepareResponseClose(event, msgTxt, "Fulfilled")
 
 def makeAPaymentSlotValidation(event, slots):
     loanNumberValidationResult = loanNumberValidation(event, slots)
@@ -73,20 +76,51 @@ def payoffMortgageIntent(event, slots):
 
     if event['invocationSource'] == 'FulfillmentCodeHook':
         msgTxt = 'Processed your payoff, successfully!  You are debt free!!!!'
-        return prepareResponseClose(event, msgText, "Fulfilled")
+        return prepareResponseClose(event, msgTxt, "Fulfilled")
 
 def payoffMortgageSlotValidation(event, slots):
     return loanNumberValidation(event, slots)
 
 ## End PayoffMortgage Intent
 
+## Start NextPaymentDetails Intent
+
+def nextPaymentDetailsIntent(event, slots):
+    print('NextPaymentDetail - slot verification')
+    nextPaymentDetails_slot_validation_result = nextPaymentDetailsSlotValidation(event, slots)
+    print('NextPaymentDetail - slot verification after')
+
+    if event['invocationSource'] == 'DialogCodeHook':
+        print('NextPaymentDetail - invocation - code hook')
+        if not nextPaymentDetails_slot_validation_result['isValid']:
+            print('NextPaymentDetail - slot inValid')
+            if 'message' in nextPaymentDetails_slot_validation_result:
+                print('NextPaymentDetail - slot inValid with message')
+                return prepareResponseDialogCodeHookWithMessage(event, slots, nextPaymentDetails_slot_validation_result)
+            else:
+                print('NextPaymentDetail - slot inValid no message')
+                return prepareResponseDialogCodeHook(event, slots, nextPaymentDetails_slot_validation_result)
+        else:
+            print('NextPaymentDetail - slot is Valid')
+            return prepareResponseDelegage(event, slots)
+
+    if event['invocationSource'] == 'FulfillmentCodeHook':
+        print('NextPaymentDetail - invocation - fulfillment')
+        msgTxt = 'You next payment date is on 05/18/2024 for payment of $1807.56.'
+        return prepareResponseClose(event, msgTxt, "Fulfilled")
+
+def nextPaymentDetailsSlotValidation(event, slots):
+    return loanNumberValidation(event, slots)
+
+## End NextPaymentDetails Intent
+
 ## Start FallBack Intent
 
 def fallbackRepresentativeIntent(event):
     # Connecting to a representative
     time.sleep(2.5)
-    msgText = "Thank you for chatting with PG today. I am unable to help with your inquiry today. We are connecting to you a representative.  They will be with you shortly.  Have an amazing day!"
-    return prepareResponseClose(event, msgText, "Failed")
+    msgTxt = "Thank you for chatting with PG today. I am unable to help with your inquiry today. We are connecting to you a representative.  They will be with you shortly.  Have an amazing day!"
+    return prepareResponseClose(event, msgTxt, "Failed")
 
 ## End FallBack Intent
 
